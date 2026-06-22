@@ -1,0 +1,31 @@
+# Spotify authentication - NEVER upload
+cookies.txt
+.spotdl/
+
+# Downloaded music - NEVER upload
+downloads/
+*.flac
+*.mp3
+*.m4a
+*.ogg
+*.opus
+*.wav
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
