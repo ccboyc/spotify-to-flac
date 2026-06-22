@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Spotify Playlist to FLAC - Expanded Search Version
-Tries multiple sources and search strategies to find more songs
+Spotify Playlist to FLAC - ALL SOURCES VERSION
+Uses every available audio platform for maximum coverage
 """
 
 import subprocess
@@ -36,10 +36,10 @@ def setup():
         return True
     return False
 
-def download_expanded(playlist_url, output_dir="./downloads"):
+def download_all_sources(playlist_url, output_dir="./downloads"):
     """
-    Download playlist with MULTIPLE search strategies to find more songs.
-    Runs spotdl 3 times with different audio sources to maximize results.
+    Download using EVERY available audio source.
+    5 separate passes to maximize coverage and quality.
     """
     cookie_file = Path.home() / '.spotdl' / 'cookies.txt'
     
@@ -49,17 +49,20 @@ def download_expanded(playlist_url, output_dir="./downloads"):
         return
     
     print(f"\n{'='*60}")
-    print("EXPANDED SEARCH MODE")
+    print("ALL-SOURCE DOWNLOAD - 5 PASSES")
     print(f"{'='*60}")
-    print("Will try 3 different audio sources to find maximum songs:")
-    print("  1. YouTube Music (best for K-pop/Asian music)")
-    print("  2. YouTube (largest library)")
-    print("  3. SoundCloud (alternative source)")
-    print(f"\nSaving to: {output_dir}\n")
-    
-    # Strategy 1: YouTube Music (best for K-pop and Asian music)
-    print(f"\n{'='*60}")
-    print("PASS 1/3: Searching YouTube Music...")
+    print(f"Saving to: {output_dir}")
+    print("Using EVERY available platform:\n")
+    print("  Pass 1: YouTube Music    (official audio, best quality)")
+    print("  Pass 2: Bandcamp         (artist uploads, 320kbps)")
+    print("  Pass 3: SoundCloud       (indie artists, remixes)")
+    print("  Pass 4: Piped            (YouTube mirror, privacy)")
+    print("  Pass 5: YouTube          (largest library, last resort)")
+    print("\n")
+
+    # Pass 1: YouTube Music (BEST quality, official audio)
+    print(f"{'='*60}")
+    print("PASS 1/5: YouTube Music (Official Audio)")
     print(f"{'='*60}\n")
     
     cmd1 = [
@@ -70,15 +73,16 @@ def download_expanded(playlist_url, output_dir="./downloads"):
         '--bitrate', '320k',
         '--cookie-file', str(cookie_file),
         '--audio', 'youtube-music',
-        '--dont-filter-results',      # Show ALL search results
+        '--only-verified-results',
+        '--max-retries', '3',
         '--threads', '1',
         '--print-errors'
     ]
     subprocess.run(cmd1)
     
-    # Strategy 2: YouTube (largest video library)
+    # Pass 2: Bandcamp (artist direct uploads)
     print(f"\n{'='*60}")
-    print("PASS 2/3: Searching YouTube...")
+    print("PASS 2/5: Bandcamp (Artist Uploads)")
     print(f"{'='*60}\n")
     
     cmd2 = [
@@ -88,16 +92,16 @@ def download_expanded(playlist_url, output_dir="./downloads"):
         '--format', 'flac',
         '--bitrate', '320k',
         '--cookie-file', str(cookie_file),
-        '--audio', 'youtube',
-        '--dont-filter-results',      # Show ALL search results
+        '--audio', 'bandcamp',
+        '--max-retries', '3',
         '--threads', '1',
         '--print-errors'
     ]
     subprocess.run(cmd2)
     
-    # Strategy 3: SoundCloud (alternative source)
+    # Pass 3: SoundCloud (indie, remixes, rare tracks)
     print(f"\n{'='*60}")
-    print("PASS 3/3: Searching SoundCloud...")
+    print("PASS 3/5: SoundCloud (Indie & Remixes)")
     print(f"{'='*60}\n")
     
     cmd3 = [
@@ -108,18 +112,61 @@ def download_expanded(playlist_url, output_dir="./downloads"):
         '--bitrate', '320k',
         '--cookie-file', str(cookie_file),
         '--audio', 'soundcloud',
-        '--dont-filter-results',
+        '--max-retries', '3',
         '--threads', '1',
         '--print-errors'
     ]
     subprocess.run(cmd3)
     
-    # Show final results
+    # Pass 4: Piped (YouTube mirror, privacy-focused)
+    print(f"\n{'='*60}")
+    print("PASS 4/5: Piped (YouTube Mirror)")
+    print(f"{'='*60}\n")
+    
+    cmd4 = [
+        'spotdl', 'download',
+        playlist_url,
+        '--output', output_dir,
+        '--format', 'flac',
+        '--bitrate', '320k',
+        '--cookie-file', str(cookie_file),
+        '--audio', 'piped',
+        '--max-retries', '3',
+        '--threads', '1',
+        '--print-errors'
+    ]
+    subprocess.run(cmd4)
+    
+    # Pass 5: YouTube (largest library, last resort)
+    print(f"\n{'='*60}")
+    print("PASS 5/5: YouTube (Largest Library)")
+    print(f"{'='*60}\n")
+    
+    cmd5 = [
+        'spotdl', 'download',
+        playlist_url,
+        '--output', output_dir,
+        '--format', 'flac',
+        '--bitrate', '320k',
+        '--cookie-file', str(cookie_file),
+        '--audio', 'youtube',
+        '--only-verified-results',
+        '--max-retries', '3',
+        '--threads', '1',
+        '--print-errors',
+        # Quality filters for YouTube pass:
+        '--yt-dlp-args', '--match-filter', 'title!*=-live',
+        '--yt-dlp-args', '--match-filter', 'title!*=-reaction',
+        '--yt-dlp-args', '--match-filter', 'duration > 120',
+    ]
+    subprocess.run(cmd5)
+    
+    # Final results
     output_path = Path(output_dir)
     flac_files = list(output_path.glob("*.flac"))
     
     print(f"\n{'='*60}")
-    print(f"ALL DOWNLOADS COMPLETE!")
+    print(f"ALL 5 PASSES COMPLETE!")
     print(f"{'='*60}")
     print(f"Total songs downloaded: {len(flac_files)}")
     print(f"Location: {output_path.absolute()}")
@@ -127,15 +174,14 @@ def download_expanded(playlist_url, output_dir="./downloads"):
     if flac_files:
         total_size = sum(f.stat().st_size for f in flac_files)
         print(f"Total size: {total_size / (1024**3):.2f} GB")
-        print(f"\nAll downloaded songs:")
-        for f in sorted(flac_files):
+        print(f"\nComplete song list:")
+        for i, f in enumerate(sorted(flac_files), 1):
             size_mb = f.stat().st_size / (1024*1024)
-            print(f"  + {f.stem} ({size_mb:.1f} MB)")
+            print(f"  {i:3d}. {f.stem} ({size_mb:.1f} MB)")
 
-def download_aggressive(playlist_url, output_dir="./downloads"):
+def download_fast_all(playlist_url, output_dir="./downloads"):
     """
-    MORE AGGRESSIVE: Use all sources at once and don't filter results.
-    This finds the most songs but takes longer.
+    Download using ALL sources in ONE pass (faster but less coverage).
     """
     cookie_file = Path.home() / '.spotdl' / 'cookies.txt'
     
@@ -145,62 +191,10 @@ def download_aggressive(playlist_url, output_dir="./downloads"):
         return
     
     print(f"\n{'='*60}")
-    print("AGGRESSIVE SEARCH MODE")
-    print(f"{'='*60}")
-    print("Using ALL audio sources simultaneously")
-    print("This finds the maximum number of songs!\n")
-    
-    # ALL sources at once - spotdl will try each
-    cmd = [
-        'spotdl', 'download',
-        playlist_url,
-        '--output', output_dir,
-        '--format', 'flac',
-        '--bitrate', '320k',
-        '--cookie-file', str(cookie_file),
-        '--audio', 'youtube', 'youtube-music', 'soundcloud',  # ALL sources
-        '--dont-filter-results',      # Show ALL possible matches
-        '--threads', '1',             # Slow to avoid rate limits
-        '--print-errors',
-        '--max-retries', '3'          # Retry failed songs 3 times
-    ]
-    
-    try:
-        subprocess.run(cmd)
-    except KeyboardInterrupt:
-        pass
-    
-    # Show results
-    output_path = Path(output_dir)
-    flac_files = list(output_path.glob("*.flac"))
-    
-    print(f"\n{'='*60}")
-    print(f"DOWNLOAD COMPLETE!")
-    print(f"{'='*60}")
-    print(f"Total songs: {len(flac_files)}")
-    print(f"Location: {output_path.absolute()}")
-    
-    if flac_files:
-        total_size = sum(f.stat().st_size for f in flac_files)
-        print(f"Total size: {total_size / (1024**3):.2f} GB")
-
-def download_playlist(playlist_url, output_dir="./downloads"):
-    """
-    Download playlist using ALL available sources
-    """
-    cookie_file = Path.home() / '.spotdl' / 'cookies.txt'
-    
-    if not cookie_file.exists():
-        print("\nNo cookies found!")
-        print("Run setup first: python spotify_flac.py --setup")
-        return
-    
-    print(f"\n{'='*60}")
-    print("DOWNLOADING PLAYLIST")
+    print("ALL SOURCES - SINGLE PASS")
     print(f"{'='*60}")
     print(f"Saving to: {output_dir}")
-    print(f"Using ALL audio sources for maximum results")
-    print(f"Press Ctrl+C to stop\n")
+    print("Using: YouTube Music + Bandcamp + SoundCloud + Piped + YouTube\n")
     
     cmd = [
         'spotdl', 'download',
@@ -209,7 +203,8 @@ def download_playlist(playlist_url, output_dir="./downloads"):
         '--format', 'flac',
         '--bitrate', '320k',
         '--cookie-file', str(cookie_file),
-        '--audio', 'youtube', 'youtube-music', 'soundcloud',
+        '--audio', 'youtube-music', 'bandcamp', 'soundcloud', 'piped', 'youtube',
+        '--only-verified-results',
         '--dont-filter-results',
         '--max-retries', '3',
         '--threads', '1',
@@ -219,9 +214,8 @@ def download_playlist(playlist_url, output_dir="./downloads"):
     try:
         subprocess.run(cmd)
     except KeyboardInterrupt:
-        pass
+        print("\nStopped by user")
     
-    # Show results
     output_path = Path(output_dir)
     flac_files = list(output_path.glob("*.flac"))
     
@@ -230,45 +224,36 @@ def download_playlist(playlist_url, output_dir="./downloads"):
     print(f"{'='*60}")
     print(f"Songs downloaded: {len(flac_files)}")
     print(f"Location: {output_path.absolute()}")
-    
-    if flac_files:
-        total_size = sum(f.stat().st_size for f in flac_files)
-        print(f"Total size: {total_size / (1024**3):.2f} GB")
-        print(f"\nFiles:")
-        for f in sorted(flac_files)[:20]:
-            print(f"  + {f.stem}")
-        if len(flac_files) > 20:
-            print(f"  ... and {len(flac_files) - 20} more")
 
 def main():
     if len(sys.argv) < 2:
-        print("\nSpotify to FLAC Downloader - EXPANDED SEARCH")
-        print("="*50)
-        print("\nUSAGE:")
-        print("  Setup:              python spotify_flac.py --setup")
-        print("  Download (normal):  python spotify_flac.py PLAYLIST_URL")
-        print("  Download (expanded): python spotify_flac.py --expanded PLAYLIST_URL")
-        print("  Download (aggressive): python spotify_flac.py --aggressive PLAYLIST_URL")
+        print("\n" + "="*60)
+        print("SPOTIFY TO FLAC - ALL SOURCES DOWNLOADER")
+        print("="*60)
         print("\nMODES:")
-        print("  normal    - Uses all sources, don't filter results")
-        print("  expanded  - Runs 3 passes (YouTube Music, YouTube, SoundCloud)")
-        print("  aggressive - All sources, no filtering, retries 3x (SLOWEST but finds most)")
+        print("  5-Pass Mode (MAXIMUM coverage, slower):")
+        print("    python spotify_flac.py PLAYLIST_URL")
+        print("    Runs 5 separate passes on every platform")
+        print("    Best for: classical, K-pop, rare music")
+        print("\n  Fast Mode (all sources at once):")
+        print("    python spotify_flac.py --fast PLAYLIST_URL")
+        print("    Single pass with all sources")
+        print("    Best for: popular music, modern playlists")
+        print("\n  Setup:")
+        print("    python spotify_flac.py --setup")
+        print("\n  SOURCES USED:")
+        print("    YouTube Music | Bandcamp | SoundCloud | Piped | YouTube")
         return
     
     if sys.argv[1] == '--setup':
         setup()
-    elif sys.argv[1] == '--expanded':
+    elif sys.argv[1] == '--fast':
         if len(sys.argv) < 3:
             print("Please provide a playlist URL")
             return
-        download_expanded(sys.argv[2])
-    elif sys.argv[1] == '--aggressive':
-        if len(sys.argv) < 3:
-            print("Please provide a playlist URL")
-            return
-        download_aggressive(sys.argv[2])
+        download_fast_all(sys.argv[2])
     else:
-        download_playlist(sys.argv[1])
+        download_all_sources(sys.argv[1])
 
 if __name__ == "__main__":
     main()
